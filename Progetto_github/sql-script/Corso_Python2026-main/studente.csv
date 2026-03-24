@@ -1,0 +1,21 @@
+id,nome,eta,corso,voto
+1,Marco,22,Python,28
+2,Anna,21,Python,30
+3,Luca,23,Data Analysis,27
+4,Sara,20,Python,25
+5,Giulia,24,Data Analysis,29
+6,Paolo,22,Python,26
+7,Francesca,23,Machine Learning,30
+8,Matteo,21,Python,24
+9,Elena,22,Data Analysis,28
+10,Simone,25,Machine Learning,27
+11,Maria,22,Python,29
+12,Alessandro,24,Data Analysis,26
+13,Valentina,21,Python,27
+14,Stefano,23,Machine Learning,28
+15,Chiara,22,Data Analysis,30
+16,Tommaso,24,Python,25
+17,Beatrice,21,Machine Learning,29
+18,Giovanni,23,Data Analysis,28
+19,Elisa,22,Python,27
+20,Fabio,24,Machine Learning,26

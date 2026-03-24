@@ -1,0 +1,215 @@
+## Cos'è il Query Tuning
+
+### Definizione sintetica
+
+Il **query tuning** (o ottimizzazione delle query) è il processo di analisi e modifica di una query SQL — o del contesto in cui viene eseguita — per ridurne il tempo di esecuzione, il consumo di risorse (CPU, memoria, I/O su disco) e il carico sull'istanza. Non è una fase automatica: richiede comprensione del piano di esecuzione, del modello dati e del comportamento del motore SQL.
+
+---
+
+### Perché una query è lenta — le cause principali
+
+Prima di ottimizzare bisogna diagnosticare. Le cause più frequenti sono:
+
+**Scansione intera della tabella (Full Table Scan)** — il motore legge ogni riga invece di usare un indice. Su tabelle grandi è la causa numero uno di lentezza.
+
+**Indici mancanti o non usati** — una query filtra su una colonna senza indice, oppure usa un indice che il motore sceglie di ignorare perché le statistiche sono obsolete.
+
+**Statistiche non aggiornate** — SQL Server stima quante righe restituirà un filtro basandosi su statistiche. Se sono vecchie, il piano scelto può essere pessimo.
+
+**JOIN su colonne non indicizzate** — il motore ricorre a operatori costosi come Hash Join o Nested Loop su grandi dataset.
+
+**Funzioni applicate alle colonne nel WHERE** — rendono un indice inutilizzabile.
+
+**SELECT *** — carica colonne non necessarie, aumenta I/O e traffico di rete.
+
+**Subquery correlate** — eseguite una volta per ogni riga della query esterna.
+
+---
+
+### Il piano di esecuzione — punto di partenza obbligatorio
+
+Il piano di esecuzione è la mappa che SQL Server disegna per rispondere alla query. È lo strumento principale del query tuning. Si attiva in SSMS con:
+
+```sql
+-- Piano stimato (non esegue la query)
+SET SHOWPLAN_ALL ON;
+
+-- Piano effettivo (esegue e mostra il piano reale)
+-- In SSMS: Ctrl+M oppure pulsante "Include Actual Execution Plan"
+```
+
+Gli operatori da monitorare con priorità:
+
+| Operatore | Significato | Segnale |
+|---|---|---|
+| `Table Scan` | Nessun indice usato | ⚠️ critico su tabelle grandi |
+| `Index Scan` | Indice letto per intero | Meglio di Table Scan, ma non ideale |
+| `Index Seek` | Indice usato in modo mirato | ✅ desiderabile |
+| `Hash Match` | Join costoso su grandi dataset | Valutare indici |
+| `Key Lookup` | Indice trovato ma mancano colonne | Aggiungere colonne all'indice |
+| `Sort` | Ordinamento in memoria o su disco | Costoso senza indice ordinato |
+
+---
+
+### Le tecniche principali di query tuning
+
+#### 1. Aggiungere o coprire con indici
+
+```sql
+-- Situazione problematica: filtro su colonna senza indice
+SELECT OrdineID, Importo
+FROM dbo.Ordini
+WHERE ClienteID = 42 AND Stato = 'Spedito';
+
+-- Soluzione: indice composto + colonne incluse (covering index)
+-- Include le colonne restituite dalla SELECT così evita il Key Lookup
+CREATE NONCLUSTERED INDEX IX_Ordini_ClienteStato
+ON dbo.Ordini (ClienteID, Stato)
+INCLUDE (OrdineID, Importo);
+```
+
+La differenza tra colonne **nell'indice** e colonne in **INCLUDE** è importante: le prime partecipano alla ricerca (seek), le seconde sono solo trasportate per evitare un accesso aggiuntivo alla tabella.
+
+#### 2. Evitare funzioni sulle colonne nel WHERE
+
+```sql
+-- ❌ Inutilizzabile da un indice: la funzione viene applicata a ogni riga
+SELECT * FROM dbo.Ordini
+WHERE YEAR(DataOrdine) = 2024;
+
+-- ✅ Riscrittura che permette l'uso dell'indice su DataOrdine
+SELECT * FROM dbo.Ordini
+WHERE DataOrdine >= '2024-01-01'
+  AND DataOrdine <  '2025-01-01';
+```
+
+Lo stesso principio vale per `CONVERT()`, `CAST()`, `UPPER()`, `LEFT()` applicati alla colonna filtrata: spostali sempre sul valore di confronto, non sulla colonna.
+
+#### 3. Sostituire subquery correlate con JOIN o CTE
+
+```sql
+-- ❌ Subquery correlata: eseguita una volta per ogni riga di Clienti
+SELECT
+    c.ClienteID,
+    c.Nome,
+    (SELECT SUM(Importo) FROM dbo.Ordini o WHERE o.ClienteID = c.ClienteID) AS Totale
+FROM dbo.Clienti c;
+
+-- ✅ Riscrittura con JOIN aggregato: eseguita una sola volta
+SELECT
+    c.ClienteID,
+    c.Nome,
+    COALESCE(o.Totale, 0) AS Totale
+FROM dbo.Clienti c
+LEFT JOIN (
+    SELECT ClienteID, SUM(Importo) AS Totale
+    FROM dbo.Ordini
+    GROUP BY ClienteID
+) o ON o.ClienteID = c.ClienteID;
+```
+
+#### 4. Usare CTE o tabelle temporanee per materializzare risultati intermedi
+
+```sql
+-- Se un sottoinsieme viene usato più volte, materializzarlo è più efficiente
+-- che ricalcolarlo ogni volta
+
+-- Con CTE (non materializza, è solo zucchero sintattico — attenzione)
+WITH OrdiniRecenti AS (
+    SELECT ClienteID, SUM(Importo) AS Totale
+    FROM dbo.Ordini
+    WHERE DataOrdine >= '2024-01-01'
+    GROUP BY ClienteID
+)
+SELECT c.Nome, r.Totale
+FROM dbo.Clienti c
+JOIN OrdiniRecenti r ON r.ClienteID = c.ClienteID;
+
+-- Con tabella temporanea (materializza fisicamente — meglio se riusata più volte)
+SELECT ClienteID, SUM(Importo) AS Totale
+INTO #OrdiniRecenti
+FROM dbo.Ordini
+WHERE DataOrdine >= '2024-01-01'
+GROUP BY ClienteID;
+
+CREATE INDEX IX_tmp_ClienteID ON #OrdiniRecenti (ClienteID);
+
+SELECT c.Nome, r.Totale
+FROM dbo.Clienti c
+JOIN #OrdiniRecenti r ON r.ClienteID = c.ClienteID;
+
+DROP TABLE #OrdiniRecenti;
+```
+
+#### 5. Aggiornare le statistiche
+
+```sql
+-- Statistiche obsolete → piani di esecuzione sbagliati
+UPDATE STATISTICS dbo.Ordini;
+
+-- Oppure per tutte le tabelle del database
+EXEC sp_updatestats;
+```
+
+#### 6. Usare SET NOCOUNT ON nelle stored procedure
+
+Come già visto nella guida sulle SP: riduce il traffico di rete eliminando i messaggi di conteggio righe che SQL Server invia dopo ogni DML.
+
+---
+
+### DMV utili per identificare le query peggiori
+
+SQL Server espone viste di sistema dinamiche (DMV) che permettono di trovare le query più costose sull'istanza senza doverle monitorare manualmente:
+
+```sql
+-- Top 10 query per tempo di CPU totale
+SELECT TOP 10
+    qs.total_worker_time / qs.execution_count AS cpu_media_microsec,
+    qs.execution_count,
+    qs.total_elapsed_time / qs.execution_count AS durata_media_microsec,
+    SUBSTRING(st.text, (qs.statement_start_offset / 2) + 1,
+        ((CASE qs.statement_end_offset
+            WHEN -1 THEN DATALENGTH(st.text)
+            ELSE qs.statement_end_offset
+          END - qs.statement_start_offset) / 2) + 1
+    ) AS testo_query
+FROM sys.dm_exec_query_stats AS qs
+CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) AS st
+ORDER BY cpu_media_microsec DESC;
+```
+
+```sql
+-- Indici mancanti suggeriti dal motore
+SELECT
+    mid.statement AS tabella,
+    migs.avg_user_impact AS impatto_stimato_pct,
+    mid.equality_columns,
+    mid.inequality_columns,
+    mid.included_columns
+FROM sys.dm_db_missing_index_details AS mid
+JOIN sys.dm_db_missing_index_groups AS mig
+    ON mid.index_handle = mig.index_handle
+JOIN sys.dm_db_missing_index_group_stats AS migs
+    ON mig.index_group_handle = migs.group_handle
+ORDER BY migs.avg_user_impact DESC;
+```
+
+---
+
+### Query tuning vs query riscrittura — distinzione
+
+| Azione | Categoria | Esempio |
+|---|---|---|
+| Aggiungere un indice | Tuning infrastrutturale | `CREATE INDEX` senza toccare la query |
+| Riscrivere il WHERE | Tuning della query | Eliminare funzioni sulle colonne |
+| Aggiornare statistiche | Tuning infrastrutturale | `sp_updatestats` |
+| Sostituire subquery con JOIN | Riscrittura logica | Cambia la struttura della query |
+| Aggiungere OPTION (RECOMPILE) | Tuning del piano | Forza ricompilazione per evitare parameter sniffing |
+
+---
+
+### Opinione critica
+
+Il query tuning è una delle competenze più sottovalutate nel percorso di un data analyst o developer SQL. La tentazione comune è aggiungere indici a ogni colonna filtrata — ma gli indici hanno un costo in scrittura (ogni INSERT/UPDATE/DELETE deve aggiornare anche gli indici) e un costo di manutenzione. Un database con 40 indici su una tabella molto scritta può essere più lento di uno con 5 indici ben scelti.
+
+Il metodo corretto è sempre lo stesso: leggere il piano di esecuzione prima di intervenire, identificare l'operatore più costoso, intervenire su quello specifico collo di bottiglia, misurare il risultato. Ottimizzare senza misurare è rumore.

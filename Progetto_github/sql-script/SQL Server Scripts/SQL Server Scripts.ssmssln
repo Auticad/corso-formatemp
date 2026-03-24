@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# SQL Server Management Studio Solution File, Format Version 20.00
+VisualStudioVersion = 15.0.28307.421
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "SQL Server Scripts", "SQL Server Scripts\SQL Server Scripts.ssmssqlproj", "{00A3D252-DBC4-48AE-B8A2-6C6857C40E3F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Default|Default = Default|Default
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{00A3D252-DBC4-48AE-B8A2-6C6857C40E3F}.Default|Default.ActiveCfg = Default
+		{D1E7CBC4-27B7-42F3-8EAE-1C9D518E95E9}.Default|Default.ActiveCfg = Default
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {974230C0-9C23-4D1D-8BA6-EAF42873D3AB}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,16 @@
+docenteId,nome,cognome,materiaId,email,telefono
+1,Giovanni,Rossi,1,rossi@scuola.it,333111111
+2,Maria,Bianchi,2,bianchi@scuola.it,333222222
+3,Luca,Verdi,3,verdi@scuola.it,333333333
+4,Anna,Neri,4,neri@scuola.it,333444444
+5,Paolo,Ferrari,5,ferrari@scuola.it,333555555
+6,Elena,Russo,6,russo@scuola.it,333666666
+7,Marco,Riva,7,riva@scuola.it,333777777
+8,Laura,Moretti,8,moretti@scuola.it,333888888
+9,Stefano,Romano,9,romano@scuola.it,333999999
+10,Chiara,Conti,10,conti@scuola.it,333101010
+11,Davide,Galli,11,galli@scuola.it,333202020
+12,Francesca,Costa,12,costa@scuola.it,333303030
+13,Simone,Martini,13,martini@scuola.it,333404040
+14,Sara,Greco,14,greco@scuola.it,333505050
+15,Alessio,Fontana,15,fontana@scuola.it,333606060
