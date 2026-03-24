@@ -28,3 +28,5 @@ EXEC sp_VotiSporaMedia;
 
 SELECT @@VERSION     --Microsoft SQL Server 2022  
 SELECT @@SERVERNAME  --DESKTOP-H94GPH9
+
+SELECT * FROM Studente;

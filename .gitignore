@@ -1,0 +1,15 @@
+.venv/
+*.env
+.env.*
+
+Thumbs.db
+desktop.ini
+
+__pycache__/
+*.pyc
+*.pyo
+logs/
+*.log
+
+.vscode/
+*.xlsx
