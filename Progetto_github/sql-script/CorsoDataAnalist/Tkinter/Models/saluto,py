@@ -1,0 +1,6 @@
+class Salutatore:
+    """Classe di esempio dentro la cartella Models"""
+    
+    def saluta(self, nome: str = "Mondo"):
+        
+        return f"Ciao {nome}! 👋\nSono la classe Salutatore dal modulo Models."
