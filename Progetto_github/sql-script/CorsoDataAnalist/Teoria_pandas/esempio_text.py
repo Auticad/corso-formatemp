@@ -1,6 +1,7 @@
 import tkinter as tk
 
-class text_widget:
+
+class text_widget: 
     def __init__(self, root):
         self.root = root
         self.root.title("Struttura base")
@@ -10,7 +11,7 @@ class text_widget:
         self.txt = tk.Text(self.root, width=30, height=10, font=("Arial", 12))
         self.txt.pack()
 
-         # Inserisci testo iniziale anche tk.INSERT
+         # Inserisci testo iniziale anche tk.INSERT?????
         self.txt.insert("1.0", "Prima riga\nSeconda riga\n") # tk.END o "end" indica di apperire il testo dopo l'ultimo carattere esistente.
 
         # Bottone per leggere tutto il contenuto
