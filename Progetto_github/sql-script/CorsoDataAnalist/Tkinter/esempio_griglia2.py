@@ -50,9 +50,12 @@ def leggi_testo():
     e = eta.get()
 
     # Ignora i campi ancora al placeholder
-    if n == PLACEHOLDERS["nome"]:  n = ""
-    if m == PLACEHOLDERS["email"]: m = ""
-    if e == PLACEHOLDERS["eta"]:   e = ""
+    if n == PLACEHOLDERS["nome"]:
+        n = ""
+    if m == PLACEHOLDERS["email"]:
+        m = ""
+    if e == PLACEHOLDERS["eta"]:
+        e = ""
 
     print(f"Nome: {n} | Email: {m} | Età: {e}")
     
